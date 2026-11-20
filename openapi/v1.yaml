@@ -1,0 +1,5257 @@
+openapi: 3.1.0
+info:
+  title: Payment Platform Partner API
+  description: Versioned server-to-server contract for partner integrations. Responses use a JSON envelope with data and meta.request_id; errors use error.type, error.code, error.message, error.details and meta.request_id. X-Request-Id matches meta.request_id on every response. Partner credentials are limited to 120 requests per minute by default; HTTP 429 includes Retry-After. Payment acceptance is asynchronous and does not prove settlement. Webhook endpoint and delivery operations are included. Only partner routes are included.
+  license:
+    name: ''
+  version: 1.3.1
+paths:
+  /v1/customers:
+    get:
+      tags:
+      - Customers
+      summary: List customers
+      description: Returns up to 100 customers belonging to the authenticated tenant.
+      operationId: listCustomersV1
+      responses:
+        '200':
+          description: Customer list
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked API key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: API key lacks the required scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    post:
+      tags:
+      - Customers
+      summary: Create a customer
+      description: Creates a customer in the authenticated tenant and environment. Replays with the same idempotency key return the same resource ID and its current representation.
+      operationId: createCustomerV1
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Unique request key; replaying the same key and body does not create another customer.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCustomer'
+        required: true
+      responses:
+        '201':
+          description: Customer created
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Invalid input
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked API key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: API key lacks the required scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency key conflicts with another request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/customers/{id}:
+    get:
+      tags:
+      - Customers
+      summary: Retrieve a customer
+      description: Retrieves a customer in the authenticated tenant and API-key environment.
+      operationId: getCustomerV1
+      parameters:
+      - name: id
+        in: path
+        description: Customer ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Customer
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '401':
+          description: Missing, invalid, expired or revoked API key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: API key lacks the required scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Customer not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    patch:
+      tags:
+      - Customers
+      summary: Update a customer
+      description: Updates the supplied customer fields in the authenticated tenant and API-key environment. Set email to an empty string to clear it. Requires an Idempotency-Key.
+      operationId: updateCustomerV1
+      parameters:
+      - name: id
+        in: path
+        description: Customer ID
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        description: Stable key for safe retries; same key with a different request returns 409.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomer'
+        required: true
+      responses:
+        '200':
+          description: Customer updated
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Invalid input or missing idempotency key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked API key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: API key lacks the required scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Customer not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency key conflicts with another request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/fx/quote:
+    get:
+      tags:
+      - FX
+      summary: Get an indicative MZN/USD/EUR/ZAR conversion quote
+      description: Returns a read-only quote from the active configured rate set. Foreign-to-MZN uses the buy rate; MZN-to-foreign uses the sell rate. The quote does not move funds and expires with the rate set.
+      operationId: getFxQuoteV1
+      parameters:
+      - name: from_currency
+        in: query
+        required: true
+        schema:
+          type: string
+        example: USD
+      - name: to_currency
+        in: query
+        required: true
+        schema:
+          type: string
+        example: MZN
+      - name: amount_minor
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+        example: 10000
+      responses:
+        '200':
+          description: Indicative conversion quote
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Credential lacks fx:read
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid amount, currency or pair
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: No active rate is configured or database is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/invoices:
+    get:
+      tags:
+      - Invoices
+      operationId: listInvoicesV1
+      responses:
+        '200':
+          description: Invoice list
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    post:
+      tags:
+      - Invoices
+      operationId: createInvoiceV1
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceInput'
+        required: true
+      responses:
+        '201':
+          description: Draft invoice created
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '400':
+          description: Invalid invoice request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice resource not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Invoice state or idempotency conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid invoice data
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/checkouts/{link_id}:
+    get:
+      tags:
+      - Invoices
+      summary: Load a finalized invoice checkout
+      operationId: getInvoiceCheckoutContextV1
+      parameters:
+      - name: link_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Invoice checkout context
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Invoice checkout unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/invoices/checkouts/{link_id}/payment:
+    get:
+      tags:
+      - Invoices
+      summary: Read invoice payment status through its link ID
+      operationId: getInvoiceCheckoutPaymentStatusV1
+      parameters:
+      - name: link_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment status without a payment ID
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Invoice checkout has no payment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+    post:
+      tags:
+      - Invoices
+      summary: Submit the selected method for an invoice checkout
+      operationId: submitInvoiceCheckoutPaymentV1
+      parameters:
+      - name: link_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutPaymentRequest'
+        required: true
+      responses:
+        '202':
+          description: Payment accepted for processing
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Invoice checkout unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Payment outcome is unresolved
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/invoices/series:
+    get:
+      tags:
+      - Invoices
+      operationId: listInvoiceSeriesV1
+      responses:
+        '200':
+          description: Invoice series list
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    post:
+      tags:
+      - Invoices
+      operationId: createInvoiceSeriesV1
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceSeriesInput'
+        required: true
+      responses:
+        '201':
+          description: Invoice series created
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '400':
+          description: Invalid invoice series request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/series/{id}/pause:
+    post:
+      tags:
+      - Invoices
+      operationId: pauseInvoiceSeriesV1
+      responses:
+        '200':
+          description: Series paused
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice series not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/series/{id}/resume:
+    post:
+      tags:
+      - Invoices
+      operationId: resumeInvoiceSeriesV1
+      responses:
+        '200':
+          description: Series resumed
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice series not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/{id}:
+    get:
+      tags:
+      - Invoices
+      operationId: getInvoiceV1
+      responses:
+        '200':
+          description: Invoice
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/{id}/finalize:
+    post:
+      tags:
+      - Invoices
+      operationId: finalizeInvoiceV1
+      responses:
+        '200':
+          description: Invoice issued with a checkout link
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Invoice state conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/invoices/{id}/void:
+    post:
+      tags:
+      - Invoices
+      operationId: voidInvoiceV1
+      responses:
+        '200':
+          description: Invoice voided
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid credentials
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Insufficient scope
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invoice not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Invoice state conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/payments:
+    get:
+      tags:
+      - Payments
+      summary: List payment intents
+      operationId: listPaymentsV1
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          maximum: 100
+          minimum: 1
+      responses:
+        '200':
+          description: Payments in the credential environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags:
+      - Payments
+      summary: Create a payment
+      description: Creates and saves the payment parent only. It does not select a method or start a checkout. Choose private, public, or link checkout using the returned payment ID.
+      operationId: createPaymentV1
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Required stable key, 16–128 safe characters.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+        required: true
+      responses:
+        '201':
+          description: Payment parent saved
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Invalid request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Credential scope/environment is not allowed
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency or account payment policy conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid amount, reference, or currency
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/payments/checkouts/{token}:
+    get:
+      tags:
+      - Payments
+      summary: Load checkout context from its token
+      operationId: getPaymentCheckoutV1
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Checkout context
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Checkout token is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/payments/checkouts/{token}/frame-policy:
+    get:
+      tags:
+      - Payments
+      summary: Read checkout embedding policy
+      operationId: getPaymentCheckoutFramePolicyV1
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Embedding policy returned in response headers
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+        '403':
+          description: Embedding is not allowed
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/payments/checkouts/{token}/payment:
+    get:
+      tags:
+      - Payments
+      summary: Read payment status through checkout token
+      operationId: getPaymentCheckoutStatusV1
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment status without exposing the payment ID
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Checkout or payment is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+    post:
+      tags:
+      - Payments
+      summary: Submit the selected method for the existing payment
+      operationId: submitPaymentCheckoutV1
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutPaymentRequest'
+        required: true
+      responses:
+        '202':
+          description: Method submitted on the existing payment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Checkout or payment is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: A payment execution is already pending or has an unknown result
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/payments/{id}:
+    get:
+      tags:
+      - Payments
+      summary: Retrieve a payment intent
+      operationId: getPaymentV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated payment ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment intent
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found in this environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/payments/{id}/checkouts:
+    get:
+      tags:
+      - Payments
+      summary: List checkout operations for a payment
+      description: Returns each private execution and each execution submitted through a public or link checkout. A public/link session without a submitted execution is returned as its own entry; submitted executions retain their originating checkout type.
+      operationId: listPaymentCheckoutsV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated payment ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Checkout operation history for the payment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCheckoutListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found in this environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/payments/{id}/events:
+    get:
+      tags:
+      - Payments
+      summary: List payment events
+      operationId: listPaymentEventsV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated payment ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sanitized payment timeline
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEventListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found in this environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/payments/{id}/link-checkout:
+    post:
+      tags:
+      - Payments
+      summary: Create payment link checkout for an existing payment
+      operationId: createLinkCheckoutV1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutSessionRequest'
+        required: true
+      responses:
+        '200':
+          description: Idempotent replay
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '201':
+          description: Payment link checkout created
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Payment scope or environment is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/payments/{id}/private-checkout:
+    post:
+      tags:
+      - Payments
+      summary: Start private checkout for an existing payment
+      description: Starts a payment method for an existing payment using the merchant's own interface. For M-Pesa and e-Mola, the provider's 60-second PIN window starts after the Master delivers the charge. The API's 80-second deadline starts with the private-checkout request, so validation, queueing, and dispatch latency already consume it; it is not an extra 80 seconds after the provider window starts. The route returns 200 with a terminal attempt or 202 if the attempt is still pending, processing, or unknown when the deadline expires. A 202 is not payment confirmation. If the client disconnects, durable processing continues and configured webhook endpoints receive the confirmed result.
+      operationId: createPrivateCheckoutV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated payment ID
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        description: Required stable key for this attempt.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentAttemptRequest'
+        required: true
+      responses:
+        '200':
+          description: Private checkout reached a terminal attempt status
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCheckoutResponse'
+        '202':
+          description: Private checkout is still pending after the 80-second API wait, or was queued for another method
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCheckoutResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found in this environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Payment already settled, checkout still in progress, or idempotency conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid method, phone, or instrument
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Payment result is temporarily unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v1/payments/{id}/public-checkout:
+    post:
+      tags:
+      - Payments
+      summary: Create hosted checkout for an existing payment
+      operationId: createPublicCheckoutV1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutSessionRequest'
+        required: true
+      responses:
+        '200':
+          description: Idempotent replay
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '201':
+          description: Hosted checkout created
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Payment scope or environment is unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Payment not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency conflict
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/public/payment-methods:
+    get:
+      tags:
+      - Payment Methods
+      summary: List public payment methods and published MZN pricing
+      description: Read-only public catalog. No API keys are required. Pricing contains the latest currently published and valid MZN tariff for each method; when no tariff is published, available is false and monetary fields are null.
+      operationId: listPublicPaymentMethodsV1
+      responses:
+        '200':
+          description: Public payment-method catalog
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethodsEnvelope'
+        '503':
+          description: Public payment-method data is temporarily unavailable
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security: []
+  /v1/wallets:
+    get:
+      tags:
+      - Wallets
+      summary: List wallets and posted-ledger balances
+      operationId: listWalletsV1
+      responses:
+        '200':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/wallets/{id}:
+    get:
+      tags:
+      - Wallets
+      summary: Get a wallet
+      operationId: getWalletV1
+      parameters:
+      - name: id
+        in: path
+        description: Wallet ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/wallets/{id}/balance:
+    get:
+      tags:
+      - Wallets
+      summary: Get a wallet balance
+      operationId: getWalletBalanceV1
+      parameters:
+      - name: id
+        in: path
+        description: Wallet ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletBalanceResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/wallets/{id}/entries:
+    get:
+      tags:
+      - Wallets
+      summary: List posted wallet ledger entries
+      operationId: listWalletEntriesV1
+      parameters:
+      - name: id
+        in: path
+        description: Wallet ID
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        description: Entry ID from the previous page
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Page size, 1 to 100
+        required: false
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletEntriesResponse'
+        '400':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: ''
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/deliveries:
+    get:
+      tags:
+      - Webhooks
+      summary: List webhook deliveries
+      description: Lists delivery status and the last response metadata for the authenticated key environment. Response bodies and endpoint secrets are never stored or returned.
+      operationId: listWebhookDeliveriesV1
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          maximum: 100
+          minimum: 1
+      responses:
+        '200':
+          description: Webhook delivery list
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/deliveries/{id}:
+    get:
+      tags:
+      - Webhooks
+      summary: Retrieve a webhook delivery
+      description: Returns the event type and safe attempt metadata, without response bodies, endpoint secrets or raw payloads.
+      operationId: getWebhookDeliveryV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated delivery ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Webhook delivery detail
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Delivery not found in this environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/deliveries/{id}/retry:
+    post:
+      tags:
+      - Webhooks
+      summary: Retry a webhook delivery
+      description: Schedules a failed delivery again if its endpoint is active. Only deliveries in failed state can be retried; pending or delivered records return 409 without scheduling another attempt.
+      operationId: retryWebhookDeliveryV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated delivery ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Retry scheduled
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliverySummaryResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Delivery not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Delivery is not eligible for retry
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/endpoints:
+    get:
+      tags:
+      - Webhooks
+      summary: List webhook endpoints
+      description: Lists endpoints in the authenticated API key environment. Signing secrets are never returned.
+      operationId: listWebhookEndpointsV1
+      responses:
+        '200':
+          description: Endpoint list
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointListResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    post:
+      tags:
+      - Webhooks
+      summary: Register a partner webhook endpoint
+      description: Registers an HTTPS URL and event subscriptions. The signing secret is returned only once. Replaying an Idempotency-Key with the same request returns the endpoint without revealing the secret again.
+      operationId: createWebhookEndpointV1
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Stable key required to make endpoint creation idempotent.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewWebhookEndpoint'
+        required: true
+      responses:
+        '200':
+          description: Idempotent replay; secret is not returned
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '201':
+          description: Endpoint created; secret included once
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '400':
+          description: Invalid URL, event list, authentication config or idempotency key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment-bound API key
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Idempotency key was reused with a different request
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Webhook encryption is not configured
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/endpoints/{id}:
+    delete:
+      tags:
+      - Webhooks
+      summary: Disable a webhook endpoint
+      description: Logically disables future deliveries and preserves delivery history. Already queued attempts are not retried after the endpoint is disabled.
+      operationId: deleteWebhookEndpointV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated webhook endpoint ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Endpoint disabled
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointSummaryResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Endpoint not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+    patch:
+      tags:
+      - Webhooks
+      summary: Update a webhook endpoint
+      description: Updates the public HTTPS URL, event subscriptions, and/or optional authentication sent to the webhook receiver. Omit auth to preserve it; set auth to null to clear it. The signing secret is unchanged and never returned. This does not change inbound partner API authentication.
+      operationId: updateWebhookEndpointV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated webhook endpoint ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookEndpointRequest'
+        required: true
+      responses:
+        '200':
+          description: Endpoint updated
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointSummaryResponse'
+        '400':
+          description: Invalid URL, events, authentication config, or empty update
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Endpoint not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Endpoint is disabled
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Webhook authentication encryption is not configured
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+  /v1/webhooks/endpoints/{id}/disable:
+    post:
+      tags:
+      - Webhooks
+      summary: Disable a webhook endpoint
+      description: Disables future deliveries for an endpoint in the authenticated key environment. Already queued attempts are not retried after the endpoint is disabled.
+      operationId: disableWebhookEndpointV1
+      parameters:
+      - name: id
+        in: path
+        description: Platform-generated webhook endpoint ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Endpoint disabled
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointSummaryResponse'
+        '401':
+          description: Missing, invalid, expired or revoked partner API credentials.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Missing scope or environment
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Endpoint not found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Partner credential rate limit exceeded; retry after the seconds in Retry-After.
+          headers:
+            Retry-After:
+              schema:
+                type: string
+              description: Seconds to wait before retrying.
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        4XX:
+          description: Partner request or authorization error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Internal service error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        5XX:
+          description: Partner API or persistence service error.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Request identifier; matches meta.request_id in the JSON response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - EdPayPrivateKey: []
+        EdPayPublicKey: []
+components:
+  schemas:
+    CreateCheckoutPaymentRequest:
+      type: object
+      required:
+      - method
+      - phone
+      properties:
+        method:
+          type: string
+        phone:
+          type: string
+      additionalProperties: false
+    CreateCheckoutSessionRequest:
+      type: object
+      properties:
+        embed_origin:
+          type:
+          - string
+          - 'null'
+      additionalProperties: false
+    CreateInvoiceInput:
+      type: object
+      required:
+      - currency
+      - items
+      properties:
+        currency:
+          type: string
+        customer_id:
+          type:
+          - string
+          - 'null'
+        description:
+          type:
+          - string
+          - 'null'
+        due_at:
+          type:
+          - string
+          - 'null'
+        due_days:
+          type:
+          - integer
+          - 'null'
+          format: int32
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItemInput'
+      additionalProperties: false
+    CreateInvoiceSeriesInput:
+      type: object
+      required:
+      - currency
+      - interval_unit
+      - interval_count
+      - starts_at
+      - due_days
+      - items
+      properties:
+        currency:
+          type: string
+        customer_id:
+          type:
+          - string
+          - 'null'
+        description:
+          type:
+          - string
+          - 'null'
+        due_days:
+          type: integer
+          format: int32
+        ends_at:
+          type:
+          - string
+          - 'null'
+        interval_count:
+          type: integer
+          format: int32
+        interval_unit:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItemInput'
+        starts_at:
+          type: string
+      additionalProperties: false
+    CreatePaymentAttemptRequest:
+      type: object
+      required:
+      - method
+      properties:
+        channel:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/PaymentChannelPayload'
+        method:
+          type: string
+          description: |-
+            Active method code returned by GET /v1/public/payment-methods. Hosted
+            card-family checkout requires channel.customer_email; tokens are rejected.
+        phone:
+          type:
+          - string
+          - 'null'
+          description: Required only when the selected method requires a customer phone number.
+          example: +25884xxxxxxx
+      additionalProperties: false
+    CreatePaymentRequest:
+      type: object
+      required:
+      - amount_minor
+      - currency
+      properties:
+        amount_minor:
+          type: integer
+          format: int64
+          example: 10000
+          minimum: 1
+        currency:
+          type: string
+          description: Must match the account base currency; payment method requirements come from the public methods catalog.
+          example: MZN
+          pattern: ^(MZN|USD|EUR|ZAR)$
+        customer_id:
+          type:
+          - string
+          - 'null'
+        description:
+          type:
+          - string
+          - 'null'
+        reference:
+          type:
+          - string
+          - 'null'
+      additionalProperties: false
+    Customer:
+      type: object
+      required:
+      - id
+      - name
+      - created_at
+      properties:
+        created_at:
+          type: string
+        email:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        name:
+          type: string
+    CustomerListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    CustomerResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ErrorEnvelope:
+      type: object
+      required:
+      - error
+      - meta
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorInfo'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ErrorInfo:
+      type: object
+      required:
+      - type
+      - code
+      - message
+      - details
+      properties:
+        code:
+          type: string
+        details: {}
+        message:
+          type: string
+        type:
+          type: string
+    FxQuoteQuery:
+      type: object
+      required:
+      - from_currency
+      - to_currency
+      - amount_minor
+      properties:
+        amount_minor:
+          type: integer
+          format: int64
+          example: 10000
+          minimum: 1
+        from_currency:
+          type: string
+          example: USD
+          pattern: ^(MZN|USD|EUR|ZAR)$
+        to_currency:
+          type: string
+          example: MZN
+          pattern: ^(MZN|USD|EUR|ZAR)$
+      additionalProperties: false
+    InvoiceItemInput:
+      type: object
+      required:
+      - description
+      - quantity
+      - unit_amount_minor
+      properties:
+        description:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        unit_amount_minor:
+          type: integer
+          format: int64
+      additionalProperties: false
+    InvoiceItemRecord:
+      type: object
+      required:
+      - id
+      - description
+      - quantity
+      - unit_amount_minor
+      - amount_minor
+      properties:
+        amount_minor:
+          type: integer
+          format: int64
+        description:
+          type: string
+        id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        unit_amount_minor:
+          type: integer
+          format: int64
+    InvoiceRecord:
+      type: object
+      required:
+      - id
+      - number
+      - status
+      - currency
+      - subtotal_minor
+      - total_minor
+      - created_at
+      - items
+      properties:
+        checkout_url:
+          type:
+          - string
+          - 'null'
+        created_at:
+          type: string
+        currency:
+          type: string
+        customer_id:
+          type:
+          - string
+          - 'null'
+        description:
+          type:
+          - string
+          - 'null'
+        due_at:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        issued_at:
+          type:
+          - string
+          - 'null'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItemRecord'
+        number:
+          type: string
+        paid_at:
+          type:
+          - string
+          - 'null'
+        paid_payment_id:
+          type:
+          - string
+          - 'null'
+        payment_link_id:
+          type:
+          - string
+          - 'null'
+        series_id:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+        subtotal_minor:
+          type: integer
+          format: int64
+        total_minor:
+          type: integer
+          format: int64
+    InvoiceSeriesRecord:
+      type: object
+      required:
+      - id
+      - status
+      - currency
+      - interval_unit
+      - interval_count
+      - next_issue_at
+      - due_days
+      - created_at
+      properties:
+        created_at:
+          type: string
+        currency:
+          type: string
+        due_days:
+          type: integer
+          format: int32
+        ends_at:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        interval_count:
+          type: integer
+          format: int32
+        interval_unit:
+          type: string
+        next_issue_at:
+          type: string
+        status:
+          type: string
+    NewCustomer:
+      type: object
+      required:
+      - name
+      properties:
+        email:
+          type:
+          - string
+          - 'null'
+          maxLength: 320
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+      additionalProperties: false
+    NewWebhookEndpoint:
+      type: object
+      required:
+      - url
+      - events
+      properties:
+        auth:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/WebhookEndpointAuth'
+            description: Optional authentication sent only to the configured webhook receiver.
+        events:
+          type: array
+          items:
+            type: string
+          example:
+          - payment.succeeded
+          - payment.failed
+          - payment.reconciliation_required
+        url:
+          type: string
+          example: https://merchant.example.com/payment-events
+      additionalProperties: false
+    PaymentChannelPayload:
+      type: object
+      properties:
+        customer_email:
+          type:
+          - string
+          - 'null'
+          description: Required for hosted Card, Apple Pay, and Google Pay checkout.
+          example: payer@example.com
+        customer_phone:
+          type:
+          - string
+          - 'null'
+        holder_name:
+          type:
+          - string
+          - 'null'
+        payment_token:
+          type:
+          - string
+          - 'null'
+        provider:
+          type:
+          - string
+          - 'null'
+        return_url:
+          type:
+          - string
+          - 'null'
+          description: Optional return URL for hosted Card, Apple Pay, and Google Pay checkout.
+        type:
+          type:
+          - string
+          - 'null'
+        wallet_token:
+          type:
+          - string
+          - 'null'
+      additionalProperties: false
+    PaymentCheckoutListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentCheckoutView'
+        meta:
+          $ref: '#/components/schemas/PaymentMeta'
+    PaymentCheckoutResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/PaymentCheckoutView'
+    PaymentCheckoutView:
+      type: object
+      required:
+      - id
+      - checkout_number
+      - checkout_type
+      - status
+      - requested_at
+      - updated_at
+      properties:
+        checkout_number:
+          type: integer
+          format: int32
+        checkout_type:
+          type: string
+        checkout_url:
+          type:
+          - string
+          - 'null'
+        completed_at:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        method:
+          type:
+          - string
+          - 'null'
+        requested_at:
+          type: string
+        status:
+          type: string
+        updated_at:
+          type: string
+    PaymentEventListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentEventView'
+        meta:
+          $ref: '#/components/schemas/PaymentMeta'
+    PaymentEventView:
+      type: object
+      required:
+      - id
+      - type
+      - to_status
+      - details
+      - occurred_at
+      properties:
+        details: {}
+        from_status:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        occurred_at:
+          type: string
+        to_status:
+          type: string
+        type:
+          type: string
+    PaymentListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentView'
+        meta:
+          $ref: '#/components/schemas/PaymentMeta'
+    PaymentMeta:
+      type: object
+      required:
+      - request_id
+      properties:
+        request_id:
+          type: string
+    PaymentMethodPricingView:
+      type: object
+      required:
+      - available
+      properties:
+        available:
+          type: boolean
+        currency_code:
+          type:
+          - string
+          - 'null'
+        fixed_fee_minor:
+          type:
+          - integer
+          - 'null'
+          format: int64
+        percentage_bps:
+          type:
+          - integer
+          - 'null'
+          format: int32
+    PaymentMethodView:
+      type: object
+      required:
+      - code
+      - name
+      - enabled
+      - availability
+      - logo_asset
+      - pricing
+      properties:
+        availability:
+          type: string
+        channel_type:
+          type:
+          - string
+          - 'null'
+        code:
+          type: string
+        currency_conversion: {}
+        enabled:
+          type: boolean
+        example_payload: {}
+        extra_fields: {}
+        logo_asset:
+          type: string
+        name:
+          type: string
+        pricing:
+          $ref: '#/components/schemas/PaymentMethodPricingView'
+        required_fields:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+        supported_currencies:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+        supported_wallets:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+    PaymentMethodsData:
+      type: object
+      required:
+      - payment_methods
+      properties:
+        payment_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethodView'
+    PaymentMethodsEnvelope:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/PaymentMethodsData'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    PaymentResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/PaymentView'
+        meta:
+          $ref: '#/components/schemas/PaymentMeta'
+    PaymentView:
+      type: object
+      required:
+      - id
+      - reference
+      - trans_id
+      - amount_minor
+      - currency
+      - base_amount_minor
+      - base_currency
+      - base_platform_fee_minor
+      - base_receiver_net_minor
+      - status
+      - platform_fee_bps
+      - platform_fee_minor
+      - receiver_net_minor
+      - created_at
+      - updated_at
+      properties:
+        amount_minor:
+          type: integer
+          format: int64
+        base_amount_minor:
+          type: integer
+          format: int64
+        base_currency:
+          type: string
+        base_platform_fee_minor:
+          type: integer
+          format: int64
+        base_receiver_net_minor:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+        currency:
+          type: string
+        fx_effective_at:
+          type:
+          - string
+          - 'null'
+        fx_expires_at:
+          type:
+          - string
+          - 'null'
+        fx_rate_mzn_per_unit:
+          type:
+          - string
+          - 'null'
+        fx_rate_set_id:
+          type:
+          - string
+          - 'null'
+        fx_rate_side:
+          type:
+          - string
+          - 'null'
+        fx_rate_source:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        method:
+          type:
+          - string
+          - 'null'
+        platform_fee_bps:
+          type: integer
+          format: int32
+        platform_fee_minor:
+          type: integer
+          format: int64
+        receiver_net_minor:
+          type: integer
+          format: int64
+        reference:
+          type: string
+        status:
+          type: string
+        trans_id:
+          type: string
+        updated_at:
+          type: string
+    ResponseMeta:
+      type: object
+      required:
+      - request_id
+      properties:
+        request_id:
+          type: string
+    UpdateCustomer:
+      type: object
+      properties:
+        email:
+          type:
+          - string
+          - 'null'
+          maxLength: 320
+        name:
+          type:
+          - string
+          - 'null'
+          maxLength: 200
+          minLength: 1
+      additionalProperties: false
+    UpdateWebhookEndpointRequest:
+      type: object
+      properties:
+        auth:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/WebhookEndpointAuth'
+            description: Omit to preserve, set to null to clear, or provide outgoing receiver authentication.
+        events:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+          example:
+          - payment.succeeded
+          - payment.failed
+        url:
+          type:
+          - string
+          - 'null'
+          example: https://merchant.example.com/payment-events
+      additionalProperties: false
+    WalletBalanceResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WalletView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WalletEntriesData:
+      type: object
+      required:
+      - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/WalletEntry'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    WalletEntriesResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WalletEntriesData'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WalletEntry:
+      type: object
+      required:
+      - id
+      - transaction_id
+      - source_type
+      - source_id
+      - direction
+      - balance_type
+      - amount_minor
+      - currency
+      - created_at
+      properties:
+        amount_minor:
+          type: string
+        balance_type:
+          type: string
+        created_at:
+          type: string
+        currency:
+          type: string
+        direction:
+          type: string
+        id:
+          type: string
+        source_id:
+          type: string
+        source_type:
+          type: string
+        transaction_id:
+          type: string
+    WalletListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WalletView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WalletResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WalletView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WalletView:
+      type: object
+      required:
+      - id
+      - currency
+      - status
+      - available_minor
+      - reserved_minor
+      - pending_withdrawal_minor
+      properties:
+        available_minor:
+          type: string
+        currency:
+          type: string
+        id:
+          type: string
+        pending_withdrawal_minor:
+          type: string
+          description: Funds reserved by pending withdrawal requests in the wallet currency's minor unit.
+          example: '0'
+        reserved_minor:
+          type: string
+        status:
+          type: string
+    WebhookDeliveryAttemptView:
+      type: object
+      required:
+      - attempt_no
+      - outcome
+      - duration_ms
+      - created_at
+      properties:
+        attempt_no:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+        duration_ms:
+          type: integer
+          format: int32
+        error_code:
+          type:
+          - string
+          - 'null'
+        http_status:
+          type:
+          - integer
+          - 'null'
+          format: int32
+        outcome:
+          type: string
+    WebhookDeliveryDetailView:
+      type: object
+      required:
+      - delivery
+      - attempts
+      properties:
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDeliveryAttemptView'
+        delivery:
+          $ref: '#/components/schemas/WebhookDeliveryView'
+    WebhookDeliveryListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDeliveryView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookDeliveryResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookDeliveryDetailView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookDeliverySummaryResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookDeliveryView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookDeliveryView:
+      type: object
+      required:
+      - id
+      - event_id
+      - event_type
+      - status
+      - attempt_count
+      - created_at
+      properties:
+        attempt_count:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+        delivered_at:
+          type:
+          - string
+          - 'null'
+        event_id:
+          type: string
+        event_type:
+          type: string
+        id:
+          type: string
+        last_error_code:
+          type:
+          - string
+          - 'null'
+        last_http_status:
+          type:
+          - integer
+          - 'null'
+          format: int32
+        status:
+          type: string
+    WebhookEndpointAuth:
+      oneOf:
+      - type: object
+        required:
+        - token
+        - type
+        properties:
+          token:
+            type: string
+          type:
+            type: string
+            enum:
+            - bearer
+      - type: object
+        required:
+        - name
+        - value
+        - type
+        properties:
+          name:
+            type: string
+          type:
+            type: string
+            enum:
+            - header
+          value:
+            type: string
+      description: |-
+        Optional authentication sent by EDPay to a partner's webhook receiver.
+        This is unrelated to authentication of inbound partner API requests.
+    WebhookEndpointListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEndpointSummaryView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookEndpointResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEndpointView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookEndpointSummaryResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEndpointSummaryView'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    WebhookEndpointSummaryView:
+      type: object
+      required:
+      - id
+      - url
+      - events
+      - status
+      - created_at
+      - updated_at
+      properties:
+        created_at:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        status:
+          type: string
+        updated_at:
+          type: string
+        url:
+          type: string
+    WebhookEndpointView:
+      type: object
+      required:
+      - id
+      - url
+      - events
+      - status
+      - created_at
+      - updated_at
+      properties:
+        created_at:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        secret:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+        updated_at:
+          type: string
+        url:
+          type: string
+  securitySchemes:
+    EdPayPrivateKey:
+      type: apiKey
+      in: header
+      name: X-EDPay-Private-Key
+      description: Private API key. Its sk_test_ or sk_live_ prefix must match the public key and selects the request mode. Send only from a partner server over HTTPS.
+    EdPayPublicKey:
+      type: apiKey
+      in: header
+      name: X-EDPay-Public-Key
+      description: Public key identifier. Its pk_test_ or pk_live_ prefix selects the request mode; send it with the matching private key.
+security:
+- EdPayPrivateKey: []
+  EdPayPublicKey: []
+tags:
+- name: Customers
+  description: Tenant-scoped customer records.
+- name: Invoices
+  description: Create one-time invoices and recurring invoice series. Recurrence creates invoices and checkout links; it does not charge automatically. Requires the invoices:read or invoices:write credential scope.
+- name: Payment Methods
+  description: Public list of payment methods, their availability, and published MZN tariffs.
+- name: Payments
+  description: Asynchronous, environment-scoped payment intents and event history.
+- name: FX
+  description: Indicative MZN, USD, EUR and ZAR quotes; no funds are moved.
+- name: Webhooks
+  description: Register HTTPS endpoints for asynchronous payment events.
+- name: Wallets
+  description: Read-only wallet balances and posted ledger entries.

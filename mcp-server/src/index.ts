@@ -54,20 +54,20 @@ export type EdPayCredentials = {
 };
 
 export const keySetupInstructions = {
-  dashboard_url: "https://pay.edutecka.com/dashboard/api-keys",
+  dashboard_url: "https://pay.edutecka.com/dashboard/mcp",
   steps: [
-    "Sign in to the EDPay dashboard and open Developers → API Keys.",
-    "Choose the account and environment, then create a matching public/private key pair.",
-    "For invoice tools, grant the invoices:write scope to the key pair.",
-    "Copy the private key when it is shown and save both values in your MCP client's secure secret store.",
+    "Sign in to the EDPay dashboard and open Developers → EDPay MCP.",
+    "Choose the account and environment, then create a credential with the invoices:write scope.",
+    "Copy the one-time X-EDPay-MCP-Key value into your MCP client's secure secret store.",
   ],
   environments: {
     sandbox: { public_key_prefix: "pk_test_", private_key_prefix: "sk_test_" },
     production: { public_key_prefix: "pk_live_", private_key_prefix: "sk_live_" },
   },
-  headers: ["X-EDPay-Public-Key", "X-EDPay-Private-Key"],
-  private_key_notice: "The private key is shown only once when created. EDPay MCP cannot retrieve or disclose it.",
-  security_notice: "Never paste keys into chat, prompts, tool arguments, URLs, browser code, repositories, or logs.",
+  endpoint: "https://api-pay.edutecka.com/v1/mcp",
+  headers: ["X-EDPay-MCP-Key"],
+  credential_notice: "The one-time MCP value packages the account's existing public/private API key pair. It has the same scopes and revocation as that pair.",
+  security_notice: "Treat X-EDPay-MCP-Key as a private credential. Never paste it into chat, prompts, tool arguments, URLs, browser code, repositories, or logs.",
 };
 
 const invoiceInput = {
@@ -89,16 +89,14 @@ const idempotencyKey = z.string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/, "Use 16–128 stable alphanumeric, dot, underscore, colon, or hyphen characters.");
 
 function configuredApi(credentials: EdPayCredentials): { baseUrl: URL; publicKey: string; privateKey: string; mode: "test" | "live" } | ApiResult {
-  const publicKey = credentials.publicKey?.trim() ?? "";
-  const privateKey = credentials.privateKey?.trim() ?? "";
-  const publicMode = publicKey.startsWith("pk_test_") ? "test" : publicKey.startsWith("pk_live_") ? "live" : undefined;
-  const privateMode = privateKey.startsWith("sk_test_") ? "test" : privateKey.startsWith("sk_live_") ? "live" : undefined;
-  if (!publicMode || !privateMode) {
-    return { ok: false, code: "edpay_keys_missing", message: "Configure the matching EDPay key pair in the MCP client's secure secret store using the X-EDPay-Public-Key and X-EDPay-Private-Key headers. Call edpay_get_key_setup for instructions; tool arguments never accept keys." };
+  const publicKey = credentials.publicKey ?? "";
+  const privateKey = credentials.privateKey ?? "";
+  if (credentials.publicKey === undefined && credentials.privateKey === undefined) {
+    return { ok: false, code: "edpay_keys_missing", message: "Configure the X-EDPay-MCP-Key credential from the EDPay dashboard in the MCP client's secure secret store. Call edpay_get_key_setup for instructions; tool arguments never accept credentials." };
   }
-  if (publicMode !== privateMode) {
-    return { ok: false, code: "edpay_key_mode_mismatch", message: "The EDPay public and private keys must use the same test or live prefix." };
-  }
+  // Forward every structurally received candidate pair to the partner API.
+  // Its existing validator owns format, environment, failure tracking, and alerts.
+  const mode = publicKey.startsWith("pk_live_") || privateKey.startsWith("sk_live_") ? "live" : "test";
 
   let baseUrl: URL;
   try {
@@ -124,7 +122,7 @@ function configuredApi(credentials: EdPayCredentials): { baseUrl: URL; publicKey
   ) {
     return { ok: false, code: "edpay_api_url_not_allowed", message: "EDPAY_API_BASE_URL must be an HTTPS origin whose hostname is listed in EDPAY_API_ALLOWED_HOSTS." };
   }
-  return { baseUrl, publicKey, privateKey, mode: publicMode };
+  return { baseUrl, publicKey, privateKey, mode };
 }
 
 async function readResponseText(response: Response, maxBytes = 256 * 1024): Promise<string> {
@@ -416,7 +414,7 @@ server.registerTool(
   "edpay_create_invoice",
   {
     title: "Create EDPay draft invoice",
-    description: "Create a persistent draft invoice in the EDPay environment selected by the caller's matching public/private key pair supplied in this MCP request's headers (invoices:write scope required). This does not send an invoice email, create a payable link, charge a customer, or mark anything paid. Call only when the user explicitly asks to create an invoice. Supply a stable idempotency_key and reuse it if retrying. The server does not use process-wide customer credentials.",
+    description: "Create a persistent draft invoice in the EDPay environment selected by the caller's existing API key pair packaged in this MCP request's credential (invoices:write scope required). EDPay validates the original pair, account, environment, expiry, and scope. This does not send an invoice email, create a payable link, charge a customer, or mark anything paid. Call only when the user explicitly asks to create an invoice. Supply a stable idempotency_key and reuse it if retrying. The server does not use process-wide customer credentials.",
     inputSchema: {
       idempotency_key: idempotencyKey,
       invoice: invoiceBodySchema,
@@ -444,7 +442,7 @@ server.registerTool(
   "edpay_create_payment_link",
   {
     title: "Create an EDPay invoice and payment link",
-    description: "Create a draft invoice and finalize it to create an active EDPay hosted checkout link. This requires the documented POST /v1/invoices and POST /v1/invoices/{id}/finalize operations and the invoices:write scope. It does not charge a customer or send an email, but the resulting link can accept payment once shared. Call only when the user explicitly asks to create a payable link. The environment comes from the caller's matching test or live key prefixes supplied in this MCP request's headers; it is never a tool argument. Supply a stable idempotency_key and reuse it if retrying. The server does not use process-wide customer credentials.",
+    description: "Create a draft invoice and finalize it to create an active EDPay hosted checkout link. This requires the documented POST /v1/invoices and POST /v1/invoices/{id}/finalize operations and the invoices:write scope. It does not charge a customer or send an email, but the resulting link can accept payment once shared. Call only when the user explicitly asks to create a payable link. The environment comes from the caller's existing test or live API key pair packaged in this MCP request's credential; EDPay validates the pair and its account environment. It is never a tool argument. Supply a stable idempotency_key and reuse it if retrying. The server does not use process-wide customer credentials.",
     inputSchema: {
       idempotency_key: idempotencyKey,
       invoice: invoiceBodySchema,

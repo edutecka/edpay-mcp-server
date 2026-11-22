@@ -63,13 +63,11 @@ function readCredentials(req: IncomingMessage): EdPayCredentials | null {
   const privateKey = getSingleHeader(req, "X-EDPay-Private-Key");
   if (publicKey === null || privateKey === null) return null;
   if (publicKey === undefined && privateKey === undefined) return {};
-  if (publicKey === undefined || privateKey === undefined) return null;
-  if (publicKey.length > 512 || privateKey.length > 512) return null;
+  if ((publicKey?.length ?? 0) > 512 || (privateKey?.length ?? 0) > 512) return null;
 
-  const publicMode = /^pk_(test|live)_[A-Za-z0-9_-]{1,256}$/.exec(publicKey)?.[1];
-  const privateMode = /^sk_(test|live)_[A-Za-z0-9_-]{1,256}$/.exec(privateKey)?.[1];
-  if (!publicMode || !privateMode || publicMode !== privateMode) return null;
-  return { publicKey, privateKey };
+  // Do not decide whether a candidate key is valid here. Forward it to the
+  // partner API so its existing pair validator records mismatches and failures.
+  return { publicKey: publicKey ?? "", privateKey: privateKey ?? "" };
 }
 
 function methodNotAllowed(res: ServerResponse, allow: string): void {
